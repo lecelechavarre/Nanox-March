@@ -99,6 +99,14 @@ document.addEventListener("scroll", () => {
     confirmationModal.appendChild(confirmationContent);
     document.body.appendChild(confirmationModal);
     
+    // Create mobile close button for inquiry modal
+    const mobileCloseBtn = document.createElement('button');
+    mobileCloseBtn.className = 'mobile-close-btn';
+    mobileCloseBtn.innerHTML = '&times;'; // × symbol
+    mobileCloseBtn.setAttribute('aria-label', 'Close');
+    mobileCloseBtn.setAttribute('title', 'Close');
+    inquiryModal.querySelector('.chat-modal-content').appendChild(mobileCloseBtn);
+    
     // Get confirmation modal elements
     const privacyCheckbox = document.getElementById('privacyPolicyCheckbox');
     const proceedButton = document.getElementById('proceedButton');
@@ -185,6 +193,12 @@ document.addEventListener("scroll", () => {
         }
     }
     
+    // Close inquiry modal (new function for mobile close button)
+    function closeInquiryModal() {
+        inquiryModal.style.display = 'none';
+        preventBodyScroll(false);
+    }
+    
     // Event Listeners
     privacyCheckbox.addEventListener('change', updateProceedButton);
     
@@ -197,6 +211,12 @@ document.addEventListener("scroll", () => {
     
     cancelButton.addEventListener('click', function() {
         hideConfirmationModal();
+    });
+    
+    // Mobile close button event listener
+    mobileCloseBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeInquiryModal();
     });
     
     // Remove hover color change listeners - colors remain consistent
@@ -251,8 +271,7 @@ document.addEventListener("scroll", () => {
     // Close Microsoft Forms modal when clicking outside
     inquiryModal.addEventListener('click', function(e) {
         if (e.target === inquiryModal) {
-            inquiryModal.style.display = 'none';
-            preventBodyScroll(false);
+            closeInquiryModal();
         }
     });
     
@@ -262,8 +281,7 @@ document.addEventListener("scroll", () => {
             if (confirmationModal.style.display === 'flex') {
                 hideConfirmationModal();
             } else if (inquiryModal.style.display === 'flex') {
-                inquiryModal.style.display = 'none';
-                preventBodyScroll(false);
+                closeInquiryModal();
             }
         }
     });
@@ -320,8 +338,7 @@ document.addEventListener("scroll", () => {
         },
         close: function() {
             hideConfirmationModal();
-            inquiryModal.style.display = 'none';
-            preventBodyScroll(false);
+            closeInquiryModal();
         },
         isOpen: function() {
             return confirmationModal.style.display === 'flex' || inquiryModal.style.display === 'flex';
@@ -338,5 +355,5 @@ document.addEventListener("scroll", () => {
         }
     };
     
-    console.log('Chat inquiry system loaded successfully with privacy policy confirmation');
+    console.log('Chat inquiry system loaded successfully with privacy policy confirmation and mobile close button');
 })();
