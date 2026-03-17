@@ -31,8 +31,7 @@
         margin-top: 30px;
         background-color: white;
         border-radius: 0.75rem;
-        border: 3px solid #0b192a;
-        box-shadow: 0 4px 15px rgba(11, 25, 42, 0.3);
+        border: 3px solid #40526b;
         
         /* Disable all transforms and transitions */
         transform: none !important;
@@ -58,7 +57,7 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        color: rgb(11, 25, 42);
+        color: #40526b;
         position: relative;
         overflow: hidden;
     }
@@ -93,7 +92,7 @@
         width: 28px !important;
         height: 28px !important;
         margin-right: 8px !important;
-        color: rgb(11, 25, 41);
+        color: #40526b;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -125,7 +124,7 @@
         font-size: 18px !important;
         font-weight: 797;
         white-space: nowrap;
-        color: rgb(11, 25, 42);
+        color: #40526b;
         margin: 0;
         letter-spacing: 0.5px;
         text-transform: uppercase;
@@ -213,14 +212,13 @@
     background-color: white;
     margin-top: 30px;
     border-radius: 0.75rem;
-    border: 3px solid #0b192a;
+    border: 3px solid #40526b;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: rgb(11, 25, 42);
+    color: #40526b;
     position: relative;
-    box-shadow: 0 4px 15px rgba(11, 25, 42, 0.3);
     transition: all 0.25s ease;
     overflow: hidden;
     -webkit-appearance: none;
@@ -234,7 +232,6 @@
     -webkit-transform: none !important;
     scale: 1 !important;
     -webkit-scale: 1 !important;
-    box-shadow: 0 4px 15px rgba(11, 25, 42, 0.3) !important;
     transition: none !important;
 }
 
@@ -245,7 +242,6 @@
         height: 85px;  /* Height to accommodate three lines with proper spacing */
         border-radius: 0.75rem;
         background-color: white;
-        box-shadow: 0 8px 25px rgba(11, 25, 42, 0.4);
         transform: translateY(-3px);
         padding: 0 8px;  /* Minimal padding to prevent text touching edges */
     }
@@ -392,7 +388,7 @@
     display: none;
 }
 
-/* ================= MODAL STYLES (UPDATED WITH CLOSE BUTTON) ================= */
+/* ================= MODAL (UNCHANGED) ================= */
 .chat-modal {
     inset: 0;
     display: none;
@@ -412,57 +408,6 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    position: relative; /* Added for close button positioning */
-}
-
-/* Mobile Close Button - Only visible on mobile */
-.mobile-close-btn {
-    display: none;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #0b192a;
-    color: white;
-    border: 2px solid white;
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer;
-    z-index: 10000000;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.mobile-close-btn:hover,
-.mobile-close-btn:active {
-    background-color: #1a2a3a;
-    transform: scale(1.05);
-}
-
-/* Show close button only on mobile and when modal is active */
-@media (max-width: 768px) {
-    .chat-modal[style*="display: flex"] .mobile-close-btn {
-        display: flex;
-    }
-    
-    /* Adjust modal content for mobile to accommodate close button */
-    .chat-modal-content {
-        width: 95%;
-        max-width: 95%;
-        height: 90vh;
-        max-height: 90vh;
-        position: relative;
-    }
-    
-    /* Ensure iframe doesn't overlap with close button */
-    .chat-modal-body iframe {
-        margin-top: 0;
-    }
 }
 
 @keyframes slideUp {
@@ -519,7 +464,6 @@
         max-width: 98%;
         height: 85vh;
         max-height: 85vh;
-        border-radius: 8px;
     }
 }
 
@@ -548,31 +492,12 @@
         max-height: 100%;
         border-radius: 0;
     }
-    
-    /* Adjust close button for very small screens */
-    .mobile-close-btn {
-        top: 5px;
-        right: 5px;
-        width: 36px;
-        height: 36px;
-        font-size: 22px;
-    }
 }
 
 /* Landscape orientation support */
 @media (max-height: 600px) and (orientation: landscape) {
     .chat-modal-content {
         max-height: 95vh;
-    }
-    
-    @media (max-width: 768px) {
-        .mobile-close-btn {
-            top: 3px;
-            right: 3px;
-            width: 32px;
-            height: 32px;
-            font-size: 20px;
-        }
     }
 }
 
@@ -689,3 +614,4 @@
         border-radius: 10px;
     }
 }
+
