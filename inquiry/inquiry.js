@@ -38,7 +38,7 @@ document.addEventListener("scroll", () => {
     confirmationBody.style.padding = '30px';
     confirmationBody.style.textAlign = 'center';
     
-    // Add confirmation modal content with updated button colors and fixed Privacy Policy links
+    // Add confirmation modal content
     confirmationBody.innerHTML = `
         <div class="confirmation-header" style="margin-bottom: 20px;">
             <h3 style="color: #0b192a; margin-bottom: 15px; font-weight: 600;">Privacy Policy Acknowledgement</h3>
@@ -135,7 +135,7 @@ document.addEventListener("scroll", () => {
                 chatLogo.classList.remove('expanded');
                 isExpanded = false;
             }
-        }, 2000); // 2-second delay
+        }, 2000);
     }
     
     // Toggle proceed button state based on checkbox
@@ -159,11 +159,8 @@ document.addEventListener("scroll", () => {
     
     // Show confirmation modal
     function showConfirmationModal() {
-        // Reset checkbox state
         privacyCheckbox.checked = false;
         updateProceedButton();
-        
-        // Show confirmation modal
         confirmationModal.style.display = 'flex';
         preventBodyScroll(true);
     }
@@ -179,13 +176,112 @@ document.addEventListener("scroll", () => {
         inquiryModal.style.display = 'flex';
         preventBodyScroll(true);
         
-        // Remove notification badge after opening
         if (notificationBadge) {
             notificationBadge.style.display = 'none';
         }
         
-        // Add back button to Excel view on mobile
         setTimeout(addMobileBackButton, 500);
+    }
+    
+    // Function to get exact 3-dot menu dimensions
+    function getThreeDotMenuDimensions(iframeDoc) {
+        // Comprehensive selectors for 3-dot menu in Microsoft Forms
+        const selectors = [
+            // Microsoft Forms specific selectors
+            'button[title="More options"]',
+            'button[aria-label="More options"]',
+            'button[aria-label="More options button"]',
+            '[role="button"][aria-haspopup="menu"]',
+            'button[aria-expanded="false"]',
+            
+            // Common icon button patterns
+            '.ms-Button--icon',
+            '.menu-button',
+            '.three-dots-button',
+            '.dot-menu-button',
+            
+            // Generic selectors with position-based detection
+            'button:last-child',
+            'header button:last-child',
+            '.header button:last-child',
+            '[class*="header"] button:last-child',
+            '[class*="Header"] button:last-child',
+            
+            // SVG icon buttons
+            'button svg[viewBox="0 0 24 24"]',
+            'button svg[width="24"][height="24"]'
+        ];
+        
+        let dotMenu = null;
+        let dimensions = null;
+        
+        // Try each selector
+        for (const selector of selectors) {
+            try {
+                const elements = iframeDoc.querySelectorAll(selector);
+                for (const element of elements) {
+                    // Check if it's likely the 3-dot menu
+                    const rect = element.getBoundingClientRect();
+                    const html = element.outerHTML || '';
+                    const text = element.textContent || '';
+                    
+                    // Look for three dots in content or classes
+                    if (html.includes('⋮') || 
+                        html.includes('&#8942;') || 
+                        text.includes('⋮') ||
+                        element.classList.toString().includes('dot') ||
+                        element.classList.toString().includes('menu') ||
+                        (rect.width > 20 && rect.width < 60 && 
+                         rect.height > 20 && rect.height < 60 &&
+                         rect.right > iframeDoc.defaultView.innerWidth - 100)) {
+                        
+                        dotMenu = element;
+                        dimensions = {
+                            width: Math.round(rect.width),
+                            height: Math.round(rect.height),
+                            top: Math.round(rect.top),
+                            right: Math.round(rect.right),
+                            bottom: Math.round(rect.bottom),
+                            left: Math.round(rect.left)
+                        };
+                        break;
+                    }
+                }
+            } catch (e) {
+                continue;
+            }
+            if (dotMenu) break;
+        }
+        
+        // If still not found, look for any icon button in top-right
+        if (!dotMenu) {
+            const allButtons = iframeDoc.querySelectorAll('button, [role="button"], .ms-Button');
+            const viewportWidth = iframeDoc.defaultView.innerWidth;
+            const viewportHeight = iframeDoc.defaultView.innerHeight;
+            
+            for (const element of allButtons) {
+                try {
+                    const rect = element.getBoundingClientRect();
+                    // Button in top 80px and right side of screen
+                    if (rect.top < 80 && rect.right > viewportWidth - 120) {
+                        dotMenu = element;
+                        dimensions = {
+                            width: Math.round(rect.width),
+                            height: Math.round(rect.height),
+                            top: Math.round(rect.top),
+                            right: Math.round(rect.right),
+                            bottom: Math.round(rect.bottom),
+                            left: Math.round(rect.left)
+                        };
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+        }
+        
+        return dimensions;
     }
     
     // Function to add back button to Excel view on mobile
@@ -203,30 +299,106 @@ document.addEventListener("scroll", () => {
             // Check if we already added the button
             if (iframeDoc.getElementById('mobile-excel-back-btn')) return;
             
-            // Create back button element
+            // Add Font Awesome to iframe if not present
+            if (!iframeDoc.querySelector('link[href*="font-awesome"]')) {
+                const fontAwesomeLink = iframeDoc.createElement('link');
+                fontAwesomeLink.rel = 'stylesheet';
+                fontAwesomeLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+                iframeDoc.head.appendChild(fontAwesomeLink);
+            }
+            
+            // Get exact dimensions of the 3-dot menu
+            const dotMenuDimensions = getThreeDotMenuDimensions(iframeDoc);
+            
+            // Default dimensions (will be overridden if 3-dot menu found)
+            let buttonWidth = 32;
+            let buttonHeight = 32;
+            let iconSize = 16;
+            let topPosition = 12;
+            
+            if (dotMenuDimensions) {
+                // Use exact dimensions from 3-dot menu
+                buttonWidth = dotMenuDimensions.width;
+                buttonHeight = dotMenuDimensions.height;
+                topPosition = dotMenuDimensions.top;
+                
+                // Calculate icon size (typically 50-60% of button size for visual balance)
+                iconSize = Math.round(Math.min(buttonWidth, buttonHeight) * 0.55);
+                
+                console.log(`3-dot menu dimensions: ${buttonWidth}x${buttonHeight}, icon size: ${iconSize}`);
+            } else {
+                // Fallback to common Microsoft Forms dimensions
+                console.log('3-dot menu not found, using standard dimensions');
+                
+                // Microsoft Forms typically uses 32x32 buttons
+                buttonWidth = 32;
+                buttonHeight = 32;
+                iconSize = 18;
+                topPosition = 12;
+            }
+            
+            // Ensure minimum touch target size
+            buttonWidth = Math.max(buttonWidth, 32);
+            buttonHeight = Math.max(buttonHeight, 32);
+            iconSize = Math.max(iconSize, 16);
+            
+            // Create back button with EXACT same dimensions as 3-dot menu
             const backButton = iframeDoc.createElement('div');
             backButton.id = 'mobile-excel-back-btn';
-            backButton.innerHTML = '← Back';
+            backButton.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
+            
+            // Apply styles that match the 3-dot menu
             backButton.style.cssText = `
                 position: fixed;
-                top: 10px;
-                left: 10px;
+                top: ${topPosition}px;
+                left: 15px;
                 z-index: 10000;
-                background: transparent;
-                color: #0a3b7c;
-                font-size: 16px;
-                font-weight: 500;
-                padding: 8px 12px;
-                cursor: pointer;
-                border: none;
+                background-color: #4e5359;
+                width: ${buttonWidth}px;
+                height: ${buttonHeight}px;
+                border-radius: 4px;
                 display: flex;
                 align-items: center;
-                gap: 5px;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                justify-content: center;
+                cursor: pointer;
+                border: none;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
                 -webkit-tap-highlight-color: transparent;
+                transition: all 0.2s ease;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
             `;
             
-            // Add click event to close modal
+            // Add styles to ensure icon is perfectly centered and sized
+            const style = iframeDoc.createElement('style');
+            style.textContent = `
+                #mobile-excel-back-btn i {
+                    font-size: ${iconSize}px;
+                    color: white;
+                    transition: transform 0.2s ease;
+                    line-height: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    height: 100%;
+                }
+                #mobile-excel-back-btn:active {
+                    transform: scale(0.95);
+                    background-color: #3d4247;
+                }
+                #mobile-excel-back-btn:active i {
+                    transform: translateX(-2px);
+                }
+                /* Match any hover effects the 3-dot menu might have */
+                #mobile-excel-back-btn:hover {
+                    background-color: #5d6268;
+                }
+            `;
+            iframeDoc.head.appendChild(style);
+            
+            // Add click event
             backButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -237,66 +409,96 @@ document.addEventListener("scroll", () => {
             // Insert into iframe
             iframeDoc.body.appendChild(backButton);
             
-            // Adjust the form to make room for the button
-            const forms = iframeDoc.querySelectorAll('form, [role="form"], .office-form');
-            if (forms.length > 0) {
-                forms.forEach(form => {
-                    form.style.marginTop = '50px';
-                });
+            // Adjust content margin if needed
+            const mainContent = iframeDoc.querySelector('main, .main-content, [role="main"], .content-wrapper');
+            if (mainContent) {
+                const currentMargin = parseInt(window.getComputedStyle(mainContent).marginTop) || 0;
+                if (currentMargin < buttonHeight + 20) {
+                    mainContent.style.marginTop = (buttonHeight + 20) + 'px';
+                }
             }
             
-            // Add resize observer to handle orientation changes
-            const resizeObserver = new ResizeObserver(() => {
-                backButton.style.top = window.innerHeight < 500 ? '5px' : '10px';
-            });
-            resizeObserver.observe(iframeDoc.body);
-            
-            console.log('Mobile back button added to Excel view');
+            console.log('Mobile back button added with exact dimensions matching 3-dot menu');
         } catch (e) {
-            // Cross-origin iframe may block access - try alternative approach
-            console.log('Cannot access iframe directly due to cross-origin policy');
+            console.log('Cannot access iframe directly, using fallback');
             addFallbackBackButton();
         }
     }
     
-    // Fallback method using overlay button
+    // Fallback method using standard Microsoft Forms dimensions
     function addFallbackBackButton() {
-        // Check if button already exists
         if (document.getElementById('mobile-excel-back-btn-fallback')) return;
         
-        // Create overlay back button
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            const fontAwesomeLink = document.createElement('link');
+            fontAwesomeLink.rel = 'stylesheet';
+            fontAwesomeLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+            document.head.appendChild(fontAwesomeLink);
+        }
+        
+        // Microsoft Forms standard button dimensions
+        const buttonSize = 32; // Standard Microsoft Forms icon button size
+        const iconSize = 18;    // Standard Microsoft Forms icon size
+        
         const backButton = document.createElement('div');
         backButton.id = 'mobile-excel-back-btn-fallback';
-        backButton.innerHTML = '← Back';
+        backButton.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
         backButton.style.cssText = `
             position: fixed;
-            top: 10px;
-            left: 10px;
+            top: 12px;
+            left: 15px;
             z-index: 10001;
-            background: white;
-            color: #0a3b7c;
-            font-size: 16px;
-            font-weight: 500;
-            padding: 8px 15px;
-            cursor: pointer;
-            border: 1px solid #ddd;
-            border-radius: 20px;
+            background-color: #4e5359;
+            width: ${buttonSize}px;
+            height: ${buttonSize}px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
-            gap: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s ease;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         `;
+        
+        const iconStyle = document.createElement('style');
+        iconStyle.textContent = `
+            #mobile-excel-back-btn-fallback i {
+                font-size: ${iconSize}px;
+                color: white;
+                transition: transform 0.2s ease;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+            }
+            #mobile-excel-back-btn-fallback:active {
+                transform: scale(0.95);
+                background-color: #3d4247;
+            }
+            #mobile-excel-back-btn-fallback:active i {
+                transform: translateX(-2px);
+            }
+            #mobile-excel-back-btn-fallback:hover {
+                background-color: #5d6268;
+            }
+        `;
+        document.head.appendChild(iconStyle);
         
         backButton.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             inquiryModal.style.display = 'none';
             preventBodyScroll(false);
+            this.remove();
         });
         
-        // Add to modal content instead of iframe
         const modalContent = document.querySelector('.chat-modal-content');
         if (modalContent) {
             modalContent.style.position = 'relative';
@@ -318,9 +520,6 @@ document.addEventListener("scroll", () => {
         hideConfirmationModal();
     });
     
-    // Remove hover color change listeners - colors remain consistent
-    // Only keep transform effects for visual feedback
-    
     cancelButton.addEventListener('mouseenter', function() {
         this.style.transform = 'translateY(-2px)';
     });
@@ -341,45 +540,37 @@ document.addEventListener("scroll", () => {
         }
     });
     
-    // Close confirmation modal when clicking outside
     confirmationModal.addEventListener('click', function(e) {
         if (e.target === confirmationModal) {
             hideConfirmationModal();
         }
     });
     
-    // Mouse enter event - expand immediately
     chatLogo.addEventListener('mouseenter', function() {
         isHovering = true;
         clearTimeout(expandTimer);
         expandButton();
     });
     
-    // Mouse leave event - start delay before shrinking
     chatLogo.addEventListener('mouseleave', function() {
         isHovering = false;
         shrinkButton();
     });
     
-    // Open confirmation modal when chat logo is clicked
     chatLogo.addEventListener('click', function(e) {
         e.stopPropagation();
         showConfirmationModal();
     });
     
-    // Close Microsoft Forms modal when clicking outside
     inquiryModal.addEventListener('click', function(e) {
         if (e.target === inquiryModal) {
             inquiryModal.style.display = 'none';
             preventBodyScroll(false);
-            
-            // Remove fallback button if exists
             const fallbackBtn = document.getElementById('mobile-excel-back-btn-fallback');
             if (fallbackBtn) fallbackBtn.remove();
         }
     });
     
-    // Close modals with Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             if (confirmationModal.style.display === 'flex') {
@@ -387,37 +578,27 @@ document.addEventListener("scroll", () => {
             } else if (inquiryModal.style.display === 'flex') {
                 inquiryModal.style.display = 'none';
                 preventBodyScroll(false);
-                
-                // Remove fallback button if exists
                 const fallbackBtn = document.getElementById('mobile-excel-back-btn-fallback');
                 if (fallbackBtn) fallbackBtn.remove();
             }
         }
     });
     
-    // Handle iframe loading
     const iframe = document.querySelector('.chat-modal-body iframe');
     if (iframe) {
         iframe.addEventListener('load', function() {
             console.log('Chat form iframe loaded successfully');
-            
-            // Add back button if on mobile
             if (window.innerWidth <= 768) {
                 addMobileBackButton();
             }
-            
-            // Try to prevent iframe clicks from bubbling to parent
             try {
                 iframe.contentWindow.document.addEventListener('click', function(e) {
                     e.stopPropagation();
                 });
-            } catch (e) {
-                // Cross-origin iframe may block this - that's okay
-            }
+            } catch (e) {}
         });
     }
     
-    // Add touch events for better mobile support
     chatLogo.addEventListener('touchstart', function(e) {
         e.stopPropagation();
         this.style.transform = 'scale(0.95)';
@@ -427,7 +608,6 @@ document.addEventListener("scroll", () => {
         this.style.transform = '';
     });
     
-    // Handle device orientation changes
     window.addEventListener('orientationchange', function() {
         setTimeout(function() {
             if (confirmationModal.style.display === 'flex') {
@@ -438,8 +618,6 @@ document.addEventListener("scroll", () => {
             }
             if (inquiryModal.style.display === 'flex') {
                 inquiryModal.style.display = 'none';
-                
-                // Re-add back button after orientation change
                 setTimeout(function() {
                     inquiryModal.style.display = 'flex';
                     if (window.innerWidth <= 768) {
@@ -450,20 +628,17 @@ document.addEventListener("scroll", () => {
         }, 300);
     });
     
-    // Handle window resize for responsive behavior
     window.addEventListener('resize', function() {
         if (inquiryModal.style.display === 'flex') {
             if (window.innerWidth <= 768) {
                 addMobileBackButton();
             } else {
-                // Remove back button on desktop
                 const fallbackBtn = document.getElementById('mobile-excel-back-btn-fallback');
                 if (fallbackBtn) fallbackBtn.remove();
             }
         }
     });
     
-    // Expose public API for site integration
     window.ChatInquiry = {
         open: function() {
             showConfirmationModal();
@@ -472,8 +647,6 @@ document.addEventListener("scroll", () => {
             hideConfirmationModal();
             inquiryModal.style.display = 'none';
             preventBodyScroll(false);
-            
-            // Remove fallback button if exists
             const fallbackBtn = document.getElementById('mobile-excel-back-btn-fallback');
             if (fallbackBtn) fallbackBtn.remove();
         },
@@ -492,5 +665,5 @@ document.addEventListener("scroll", () => {
         }
     };
     
-    console.log('Chat inquiry system loaded successfully with privacy policy confirmation');
+    console.log('Chat inquiry system loaded successfully');
 })();
