@@ -99,14 +99,6 @@ document.addEventListener("scroll", () => {
     confirmationModal.appendChild(confirmationContent);
     document.body.appendChild(confirmationModal);
     
-    // Create mobile close button for inquiry modal
-    const mobileCloseBtn = document.createElement('button');
-    mobileCloseBtn.className = 'mobile-close-btn';
-    mobileCloseBtn.innerHTML = '&times;'; // × symbol
-    mobileCloseBtn.setAttribute('aria-label', 'Close');
-    mobileCloseBtn.setAttribute('title', 'Close');
-    inquiryModal.querySelector('.chat-modal-content').appendChild(mobileCloseBtn);
-    
     // Get confirmation modal elements
     const privacyCheckbox = document.getElementById('privacyPolicyCheckbox');
     const proceedButton = document.getElementById('proceedButton');
@@ -191,12 +183,125 @@ document.addEventListener("scroll", () => {
         if (notificationBadge) {
             notificationBadge.style.display = 'none';
         }
+        
+        // Add back button to Excel view on mobile
+        setTimeout(addMobileBackButton, 500);
     }
     
-    // Close inquiry modal (new function for mobile close button)
-    function closeInquiryModal() {
-        inquiryModal.style.display = 'none';
-        preventBodyScroll(false);
+    // Function to add back button to Excel view on mobile
+    function addMobileBackButton() {
+        // Only add on mobile devices
+        if (window.innerWidth > 768) return;
+        
+        const iframe = document.querySelector('.chat-modal-body iframe');
+        if (!iframe) return;
+        
+        try {
+            // Access iframe content
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            
+            // Check if we already added the button
+            if (iframeDoc.getElementById('mobile-excel-back-btn')) return;
+            
+            // Create back button element
+            const backButton = iframeDoc.createElement('div');
+            backButton.id = 'mobile-excel-back-btn';
+            backButton.innerHTML = '← Back';
+            backButton.style.cssText = `
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                z-index: 10000;
+                background: transparent;
+                color: #0a3b7c;
+                font-size: 16px;
+                font-weight: 500;
+                padding: 8px 12px;
+                cursor: pointer;
+                border: none;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                -webkit-tap-highlight-color: transparent;
+            `;
+            
+            // Add click event to close modal
+            backButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                inquiryModal.style.display = 'none';
+                preventBodyScroll(false);
+            });
+            
+            // Insert into iframe
+            iframeDoc.body.appendChild(backButton);
+            
+            // Adjust the form to make room for the button
+            const forms = iframeDoc.querySelectorAll('form, [role="form"], .office-form');
+            if (forms.length > 0) {
+                forms.forEach(form => {
+                    form.style.marginTop = '50px';
+                });
+            }
+            
+            // Add resize observer to handle orientation changes
+            const resizeObserver = new ResizeObserver(() => {
+                backButton.style.top = window.innerHeight < 500 ? '5px' : '10px';
+            });
+            resizeObserver.observe(iframeDoc.body);
+            
+            console.log('Mobile back button added to Excel view');
+        } catch (e) {
+            // Cross-origin iframe may block access - try alternative approach
+            console.log('Cannot access iframe directly due to cross-origin policy');
+            addFallbackBackButton();
+        }
+    }
+    
+    // Fallback method using overlay button
+    function addFallbackBackButton() {
+        // Check if button already exists
+        if (document.getElementById('mobile-excel-back-btn-fallback')) return;
+        
+        // Create overlay back button
+        const backButton = document.createElement('div');
+        backButton.id = 'mobile-excel-back-btn-fallback';
+        backButton.innerHTML = '← Back';
+        backButton.style.cssText = `
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 10001;
+            background: white;
+            color: #0a3b7c;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 8px 15px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        `;
+        
+        backButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            inquiryModal.style.display = 'none';
+            preventBodyScroll(false);
+        });
+        
+        // Add to modal content instead of iframe
+        const modalContent = document.querySelector('.chat-modal-content');
+        if (modalContent) {
+            modalContent.style.position = 'relative';
+            modalContent.appendChild(backButton);
+        }
     }
     
     // Event Listeners
@@ -211,12 +316,6 @@ document.addEventListener("scroll", () => {
     
     cancelButton.addEventListener('click', function() {
         hideConfirmationModal();
-    });
-    
-    // Mobile close button event listener
-    mobileCloseBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        closeInquiryModal();
     });
     
     // Remove hover color change listeners - colors remain consistent
@@ -271,7 +370,12 @@ document.addEventListener("scroll", () => {
     // Close Microsoft Forms modal when clicking outside
     inquiryModal.addEventListener('click', function(e) {
         if (e.target === inquiryModal) {
-            closeInquiryModal();
+            inquiryModal.style.display = 'none';
+            preventBodyScroll(false);
+            
+            // Remove fallback button if exists
+            const fallbackBtn = document.getElementById('mobile-excel-back-btn-fallback');
+            if (fallbackBtn) fallbackBtn.remove();
         }
     });
     
@@ -281,7 +385,12 @@ document.addEventListener("scroll", () => {
             if (confirmationModal.style.display === 'flex') {
                 hideConfirmationModal();
             } else if (inquiryModal.style.display === 'flex') {
-                closeInquiryModal();
+                inquiryModal.style.display = 'none';
+                preventBodyScroll(false);
+                
+                // Remove fallback button if exists
+                const fallbackBtn = document.getElementById('mobile-excel-back-btn-fallback');
+                if (fallbackBtn) fallbackBtn.remove();
             }
         }
     });
@@ -291,6 +400,11 @@ document.addEventListener("scroll", () => {
     if (iframe) {
         iframe.addEventListener('load', function() {
             console.log('Chat form iframe loaded successfully');
+            
+            // Add back button if on mobile
+            if (window.innerWidth <= 768) {
+                addMobileBackButton();
+            }
             
             // Try to prevent iframe clicks from bubbling to parent
             try {
@@ -324,11 +438,29 @@ document.addEventListener("scroll", () => {
             }
             if (inquiryModal.style.display === 'flex') {
                 inquiryModal.style.display = 'none';
+                
+                // Re-add back button after orientation change
                 setTimeout(function() {
                     inquiryModal.style.display = 'flex';
+                    if (window.innerWidth <= 768) {
+                        addMobileBackButton();
+                    }
                 }, 50);
             }
         }, 300);
+    });
+    
+    // Handle window resize for responsive behavior
+    window.addEventListener('resize', function() {
+        if (inquiryModal.style.display === 'flex') {
+            if (window.innerWidth <= 768) {
+                addMobileBackButton();
+            } else {
+                // Remove back button on desktop
+                const fallbackBtn = document.getElementById('mobile-excel-back-btn-fallback');
+                if (fallbackBtn) fallbackBtn.remove();
+            }
+        }
     });
     
     // Expose public API for site integration
@@ -338,7 +470,12 @@ document.addEventListener("scroll", () => {
         },
         close: function() {
             hideConfirmationModal();
-            closeInquiryModal();
+            inquiryModal.style.display = 'none';
+            preventBodyScroll(false);
+            
+            // Remove fallback button if exists
+            const fallbackBtn = document.getElementById('mobile-excel-back-btn-fallback');
+            if (fallbackBtn) fallbackBtn.remove();
         },
         isOpen: function() {
             return confirmationModal.style.display === 'flex' || inquiryModal.style.display === 'flex';
@@ -355,5 +492,5 @@ document.addEventListener("scroll", () => {
         }
     };
     
-    console.log('Chat inquiry system loaded successfully with privacy policy confirmation and mobile close button');
+    console.log('Chat inquiry system loaded successfully with privacy policy confirmation');
 })();
